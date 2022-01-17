@@ -116,7 +116,7 @@ class WandBOutput(LogOutput):
             wandb.log({key: wandb_hist}, step=step)
         if isinstance(value, np.ndarray):
             # If a numpy array is supplied we assume the dimensions are, in order: time, channels, width, height
-            wandb.log( {key: wandb.Video(value, fps=60, format="gif")})
+            wandb.log( {key: wandb.Video(value, fps=60, format="mp4")})
         elif isinstance(value, Histogram):
             hist = np.histogram(value)
             wandb_hist = wandb.Histogram(hist)
