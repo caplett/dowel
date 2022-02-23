@@ -9,12 +9,16 @@ Note:
 
 import wandb
 import functools
+import io
 
 import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
+
+from PIL import Image
+
 # import tensorboardX as tbX
 # try:
     # import tensorflow as tf
@@ -101,10 +105,17 @@ class WandBOutput(LogOutput):
 
 
     def _record_kv(self, key, value, step):
-        if isinstance(value, np.ScalarType):
+        if isinstance(value, wandb.Table):
+            wandb.log({key: value}, step=step)
+        elif isinstance(value, np.ScalarType):
             wandb.log({key: value}, step=step)
         elif isinstance(value, plt.Figure):
-            wandb.log({key: value}, step=step)
+
+            img_buf = io.BytesIO()
+            value.savefig(img_buf, format='png')
+            im = Image.open(img_buf)
+
+            wandb.log({key: wandb.Image(im)}, step=step)
         elif isinstance(value, scipy.stats._distn_infrastructure.rv_frozen):
             shape = (self._histogram_samples, ) + value.mean().shape
             hist = np.histogram(value.rvs(shape))
@@ -114,9 +125,9 @@ class WandBOutput(LogOutput):
             hist = np.histogram(value.rvs(self._histogram_samples))
             wandb_hist = wandb.Histogram(hist)
             wandb.log({key: wandb_hist}, step=step)
-        if isinstance(value, np.ndarray):
+        elif isinstance(value, np.ndarray):
             # If a numpy array is supplied we assume the dimensions are, in order: time, channels, width, height
-            wandb.log( {key: wandb.Video(value, fps=60, format="mp4")})
+            wandb.log( {key: wandb.Video(value, fps=60, format="mp4")}, step=step)
         elif isinstance(value, Histogram):
             hist = np.histogram(value)
             wandb_hist = wandb.Histogram(hist)
